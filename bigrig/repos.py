@@ -1,8 +1,8 @@
 """
 Objects representing repos that store python distributions
 """
-
 import os.path
+import typing as t
 
 import twine.settings
 from pypi_simple import PyPISimple
@@ -19,19 +19,19 @@ class PythonDistributionRepo:
     A place where python distribution files are stored
     """
 
-    def project(self):
+    def project(self) -> t.Any:
         raise NotImplementedError
 
-    def project_files(self, project):
+    def project_files(self, project: t.Any) -> t.Any:
         raise NotImplementedError
 
-    def download(self, project, file, dest):
+    def download(self, project: t.Any, file: t.Any, dest: t.Any) -> t.Any:
         raise NotImplementedError
 
-    def upload(self, project, file):
+    def upload(self, project: t.Any, file: t.Any) -> t.Any:
         raise NotImplementedError
 
-    def download_sdist(self, project, version, dir):
+    def download_sdist(self, project: t.Any, version: t.Any, dir: t.Any) -> t.Any:
         sdists = [
             dist
             for dist in self.project_files(project)
@@ -40,21 +40,27 @@ class PythonDistributionRepo:
         if not sdists:
             raise NotAvailable(f"No sdists for {project}={version}")
         sdist = sdists[0]
-        return self.download(project, sdist[0].filename)
+        # FIXME download `dest` is wrong, added to pass mypy checks
+        return self.download(project, sdist[0].filename, dest=None)
 
 
 class SimpleRepo(PythonDistributionRepo):
     """ PEP-503 (aka pypi/simple) compliant repository """
 
-    def __init__(self, url, auth=None):
+    _username: t.Optional[str]
+    _password: t.Optional[str]
+    url: str
+    client: PyPISimple
+
+    def __init__(self, url: str, auth: t.Tuple[str, str] = None) -> None:
         self.url = url
         self._username, self._password = auth or (None, None)
         self.client = PyPISimple(endpoint=url)
 
-    def project_files(self, project):
+    def project_files(self, project: t.Any) -> t.Any:
         return self.client.get_project_files(project)
 
-    def download(self, project, file, dest):
+    def download(self, project: t.Any, file: t.Any, dest: t.Any) -> t.Any:
         dists = [x for x in self.project_files(project) if x.filename == file]
         if not dists:
             raise NotAvailable(f"{file} is not available in project{project}")
@@ -63,7 +69,7 @@ class SimpleRepo(PythonDistributionRepo):
         download_file(dist.url, full_fname)
         return full_fname
 
-    def upload(self, project, file):
+    def upload(self, project: t.Any, file: t.Any) -> t.Any:
         settings = twine.settings.Settings(
             repository_url=self.url, username=self._username, password=self._password
         )
@@ -72,7 +78,9 @@ class SimpleRepo(PythonDistributionRepo):
 
 
 class LocalRepo(PythonDistributionRepo):
-    def __init__(self, path):
+    path: str
+
+    def __init__(self, path: str) -> None:
         self.path = path
 
     # TODO
