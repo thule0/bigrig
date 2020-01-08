@@ -296,17 +296,16 @@ class RootConfig:
 class Settings:
     root: RootConfig
 
-    def __getattr__(self, name: str) -> t.Any:
-        if "root" not in self.__dict__:
-            raise RuntimeError(
-                f"Application is improperly configured. Before accessing 'settings.{name}'"
-                f" '{__name__}.settings.configure()' needs to called"
-            )
-        elif name not in self.__dict__:
-            raise AttributeError(
-                f"'{self.__class__.__name__}' object has no attribute '{name}'"
-            )
-        return getattr(self, name)
+    def __getattribute__(self, name: str) -> t.Any:
+        try:
+            return super().__getattribute__(name)
+        except AttributeError as exc:
+            if name == "root":
+                raise ImportError(
+                    f"Application is improperly configured. Before accessing 'settings.{name}'"
+                    f" '{__name__}.settings.configure()' needs to called"
+                ) from exc
+            raise
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Settings):
@@ -317,18 +316,27 @@ class Settings:
         return self.root == other.root
 
     def __repr__(self) -> str:
-        if "root" in self.__dict__:
+        try:
             return f"{self.__class__.__name__}(root='{self.root}')"
-        else:
+        except ImportError:
             return f"{self.__class__.__name__}(<Unconfigured>)"
 
     def configure(self) -> None:
-        if "root" in self.__dict__:
+        try:
+            # Trigger attribute checks
+            self.root
+        except ImportError:
+            # `root` object is missing, configure it
+            super().__setattr__("root", RootConfig.get_instance())
+        else:
+            # `root` object is present, we're calling `configure` 1+ times
             raise RuntimeError(
                 f"Settings already have been configured once. A duplicate call to"
                 f" '{__name__}.settings.configure()' exists somewhere in the code path"
             )
-        self.root = RootConfig.get_instance()
+
+
+settings = Settings()
 
 
 settings = Settings()
