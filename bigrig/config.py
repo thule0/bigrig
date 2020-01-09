@@ -239,7 +239,7 @@ class ConfigEntry:
 
 @dataclass
 class RootConfig:
-    entries: t.List[ConfigEntry]
+    entry: ConfigEntry
     packages: t.List[Requirement]
 
     @classmethod
@@ -260,9 +260,7 @@ class RootConfig:
 
         try:
             with open(config_path, "rt") as fid:
-                entries = [
-                    ConfigEntry.from_dict(blob=blob) for blob in yaml.safe_load_all(fid)
-                ]
+                entry = ConfigEntry.from_dict(blob=yaml.safe_load(fid))
         except yaml.YAMLError as exc:
             raise yaml.YAMLError(
                 f"Unable to load config from '{config_path}', it appears to be a non-yaml file"
@@ -276,7 +274,7 @@ class RootConfig:
         except OSError as exc:
             raise OSError(f"Unable to load packages from '{packages_path}'") from exc
 
-        return cls(entries=entries, packages=packages)
+        return cls(entry=entry, packages=packages)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, RootConfig):
@@ -289,7 +287,7 @@ class RootConfig:
                 str(self_pkg) == str(other_pkg)
                 for self_pkg, other_pkg in zip_longest(self.packages, other.packages)
             )
-            and self.entries == other.entries
+            and self.entry == other.entry
         )
 
 
