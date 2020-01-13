@@ -222,7 +222,10 @@ class RootConfig:
 
     def all_settings(self):
         fields = [f.name for f in dataclasses.fields(self.config)]
-        return {**{f: getattr(self.config, f) for f in fields}, "packages": self.packages}
+        return {
+            **{f: getattr(self.config, f) for f in fields},
+            "packages": self.packages,
+        }
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, RootConfig):
@@ -240,8 +243,8 @@ class RootConfig:
 
 
 class Settings:
-    _wrapped: dict=None
-    _config_dir: str=None
+    _wrapped: dict = None
+    _config_dir: str = None
 
     @property
     def configured(self):

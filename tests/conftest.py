@@ -6,4 +6,4 @@ import pytest
 
 @pytest.fixture
 def datadir():
-    return Path(os.path.dirname(os.path.realpath(__file__))) / 'data'
+    return Path(os.path.dirname(os.path.realpath(__file__))) / "data"
