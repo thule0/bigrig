@@ -191,39 +191,16 @@ class ConfigEntry:
             },
         )
 
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, ConfigEntry):
-            raise TypeError(
-                f"'==' not supported between instances of '{self.__class__.__name__}' and"
-                f" '{other.__class__.__name__}'"
-            )
-        return (
-            self.origin == other.origin
-            and self.source == other.source
-            and self.targets == other.targets
-        )
-
 
 @dataclass
 class RootConfig:
-    entry: ConfigEntry
+    config: ConfigEntry
     packages: t.List[Requirement]
 
     @classmethod
-    def get_instance(cls) -> "RootConfig":
-        config_path = os.environ.get("BIGRIG_CONFIG_PATH")
-        if not config_path:
-            raise ValueError(
-                f"Missing path to bigrig configuration, point BIGRIG_CONFIG_PATH to bigrig"
-                f"configuration file"
-            )
-
-        packages_path = os.environ.get("BIGRIG_PACKAGES_PATH")
-        if not packages_path:
-            raise ValueError(
-                f"Missing path to bigrig package list, point BIGRIG_PACKAGES_PATH to bigrig"
-                f"package file list"
-            )
+    def from_dir(cls, config_dir: str):
+        packages_path = os.path.join(config_dir, "packages.txt")
+        config_path = os.path.join(config_dir, "config.yaml")
 
         try:
             with open(config_path, "rt") as fid:
@@ -241,7 +218,11 @@ class RootConfig:
         except OSError as exc:
             raise OSError(f"Unable to load packages from '{packages_path}'") from exc
 
-        return cls(entry=entry, packages=packages)
+        return cls(config=entry, packages=packages)
+
+    def all_settings(self):
+        fields = [f.name for f in dataclasses.fields(self.config)]
+        return {**{f: getattr(self.config, f) for f in fields}, "packages": self.packages}
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, RootConfig):
@@ -254,54 +235,44 @@ class RootConfig:
                 str(self_pkg) == str(other_pkg)
                 for self_pkg, other_pkg in zip_longest(self.packages, other.packages)
             )
-            and self.entry == other.entry
+            and self.config == other.config
         )
 
 
 class Settings:
-    root: RootConfig
+    _wrapped: dict=None
+    _config_dir: str=None
 
-    def __getattribute__(self, name: str) -> t.Any:
-        try:
-            return super().__getattribute__(name)
-        except AttributeError as exc:
-            if name == "root":
-                raise ImportError(
-                    f"Application is improperly configured. Before accessing 'settings.{name}'"
-                    f" '{__name__}.settings.configure()' needs to called"
-                ) from exc
-            raise
+    @property
+    def configured(self):
+        return self._wrapped is not None
 
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Settings):
-            raise TypeError(
-                f"'==' not supported between instances of '{self.__class__.__name__}' and"
-                f" '{other.__class__.__name__}'"
+    def __getattr__(self, name: str) -> t.Any:
+        if not self.configured:
+            raise SettingsNotConfigured(
+                f"Application is not configured. Call '{__name__}.settings.configure() before accessing settings"
             )
-        return self.root == other.root
+        return self._wrapped[name]
 
     def __repr__(self) -> str:
-        try:
-            return f"{self.__class__.__name__}(root='{self.root}')"
-        except ImportError:
+        if self._config_dir is not None:
+            return f"{self.__class__.__name__}({self._config_dir})"
+        elif self.configured:
+            return f"{self.__class__.__name__}"
+        else:
             return f"{self.__class__.__name__}(<Unconfigured>)"
 
-    def configure(self) -> None:
-        try:
-            # Trigger attribute checks
-            self.root
-        except ImportError:
-            # `root` object is missing, configure it
-            super().__setattr__("root", RootConfig.get_instance())
-        else:
-            # `root` object is present, we're calling `configure` 1+ times
-            raise RuntimeError(
-                f"Settings already have been configured once. A duplicate call to"
-                f" '{__name__}.settings.configure()' exists somewhere in the code path"
+    def configure(self, config_dir=None) -> None:
+        config_dir = config_dir or os.environ.get("BIGRIG_CONFIG_PATH")
+        if not config_dir:
+            raise ValueError(
+                f"Missing path to bigrig configuration, point BIGRIG_CONFIG_PATH to bigrig"
+                f"configuration file"
             )
 
-
-settings = Settings()
+        root = RootConfig.from_dir(config_dir)
+        self._wrapped = {**root.all_settings()}
+        self._config_dir = config_dir
 
 
 settings = Settings()
