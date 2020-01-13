@@ -1,11 +1,14 @@
+import dataclasses
 import os
 import typing as t
 from dataclasses import dataclass
 from itertools import zip_longest
+
+import jsonschema
+import yaml
 from packaging.requirements import Requirement
 
-import yaml
-import jsonschema
+from bigrig.exceptions import SettingsNotConfigured
 
 __all__ = ["settings"]
 
@@ -63,7 +66,7 @@ CONFIG_SCHEMA = {
         "target": {
             "type": "object",
             "properties": {
-                "variables": {
+                "vars": {
                     "type": "object",
                     "description": (
                         "Variables to be forwarded to the dockerfile template and used inside"
@@ -78,7 +81,7 @@ CONFIG_SCHEMA = {
                     "description": "Path to YAML file containing CREDENTIALS_SCHEMA",
                 },
             },
-            "required": ["variables", "location"],
+            "required": ["location"],
             "additionalProperties": False,
         },
     },
@@ -182,14 +185,14 @@ class Source:
 @dataclass
 class Target:
     location: str
-    variables: t.Dict[str, t.Any]
+    vars: t.Dict[str, t.Any]
     credentials: t.Optional["Credentials"]
 
     @classmethod
     def from_dict(cls, blob: t.Dict) -> "Target":
         return cls(
             location=blob["location"],
-            variables=blob["variables"],
+            vars=blob["vars"],
             credentials=Credentials.from_path(path=blob.get("credentialsPath")),
         )
 
