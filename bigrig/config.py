@@ -114,14 +114,6 @@ class Origin:
             credentials=Credentials.from_path(path=blob.get("credentialsPath")),
         )
 
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Origin):
-            raise TypeError(
-                f"'==' not supported between instances of '{self.__class__.__name__}' and"
-                f" '{other.__class__.__name__}'"
-            )
-        return self.location == other.location and self.credentials == other.credentials
-
 
 @dataclass
 class Credentials:
@@ -152,14 +144,6 @@ class Credentials:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(username='{self.username}', password='***')"
 
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Credentials):
-            raise TypeError(
-                f"'==' not supported between instances of '{self.__class__.__name__}' and"
-                f" '{other.__class__.__name__}'"
-            )
-        return self.username == other.username and self.password == other.password
-
 
 @dataclass
 class Source:
@@ -172,14 +156,6 @@ class Source:
             location=blob["location"],
             credentials=Credentials.from_path(path=blob.get("credentialsPath")),
         )
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Source):
-            raise TypeError(
-                f"'==' not supported between instances of '{self.__class__.__name__}' and"
-                f" '{other.__class__.__name__}'"
-            )
-        return self.location == other.location and self.credentials == other.credentials
 
 
 @dataclass
@@ -194,18 +170,6 @@ class Target:
             location=blob["location"],
             vars=blob["vars"],
             credentials=Credentials.from_path(path=blob.get("credentialsPath")),
-        )
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Target):
-            raise TypeError(
-                f"'==' not supported between instances of '{self.__class__.__name__}' and"
-                f" '{other.__class__.__name__}'"
-            )
-        return (
-            self.location == other.location
-            and self.variables == other.variables
-            and self.credentials == other.credentials
         )
 
 
