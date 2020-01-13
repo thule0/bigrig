@@ -198,7 +198,7 @@ class RootConfig:
     packages: t.List[Requirement]
 
     @classmethod
-    def from_dir(cls, config_dir: str):
+    def from_dir(cls, config_dir: str) -> "RootConfig":
         packages_path = os.path.join(config_dir, "packages.txt")
         config_path = os.path.join(config_dir, "config.yaml")
 
@@ -220,7 +220,7 @@ class RootConfig:
 
         return cls(config=entry, packages=packages)
 
-    def all_settings(self):
+    def all_settings(self) -> dict:
         fields = [f.name for f in dataclasses.fields(self.config)]
         return {
             **{f: getattr(self.config, f) for f in fields},
@@ -243,11 +243,11 @@ class RootConfig:
 
 
 class Settings:
-    _wrapped: dict = None
-    _config_dir: str = None
+    _wrapped: t.Optional[dict] = None
+    _config_dir: t.Optional[str] = None
 
     @property
-    def configured(self):
+    def configured(self) -> bool:
         return self._wrapped is not None
 
     def __getattr__(self, name: str) -> t.Any:
@@ -265,7 +265,7 @@ class Settings:
         else:
             return f"{self.__class__.__name__}(<Unconfigured>)"
 
-    def configure(self, config_dir=None) -> None:
+    def configure(self, config_dir: str = None) -> None:
         config_dir = config_dir or os.environ.get("BIGRIG_CONFIG_PATH")
         if not config_dir:
             raise ValueError(
