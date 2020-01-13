@@ -1,0 +1,10 @@
+origin:
+    location: 'http://pypi'
+source:
+    location: ./br/src
+targets:
+    co7_37:
+        vars:
+            pythonver: '3.7'
+            os: co7
+        location: ./br/co7_37/
